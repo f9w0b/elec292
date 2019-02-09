@@ -149,6 +149,12 @@ pwmAdjust:
 	done_PWM:
 ret
 
+; Functions for displaying information:
+
+; Function: updateDisplay7Seg
+updateDisplay7Seg:
+ret
+
 ; Show reflow process current state, temperature(s) (current and target temperature), and running time using LCD
 updateDisplayLCD:
 	case(STATE_COUNTER)
