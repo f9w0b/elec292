@@ -17,9 +17,8 @@
 
 *Code:*
 	- When using math32.inc, and using registers "x" and "y", make sure to move as follows:
-	```
+
 	mov x+0, variable+0		; Move low bits of "variable" into "x"
 	mov x+1, variable+1		; Move higher bits of "variable" into "x"
 	mov x+2, #0				; Clear
 	mov x+3, #0				; Clear (these help make sure no residue)
-	```
