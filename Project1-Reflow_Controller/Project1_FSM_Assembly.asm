@@ -12,7 +12,7 @@ START_BUTTON equ P4.5													; arbitrary pin for start button
 forever:
 
 	; non-blocking state machine for KEY1 starts here
-	mov a, STATE_COUNTER
+	mov a, State_Counter
 	wait:
 		cjne a, #WAIT, rampToSoak
 			; At this point we are in wait state state
@@ -23,38 +23,54 @@ forever:
 				; At this point, we have detected a valid press of the start button
 				cjne SET_MODE, #0, doneWaitState						; if we are setting something, keep waiting
 					; The following code executes when START_BUTTON has been pressed and we are not setting anything
-					mov STATE_TIMER, #60								; Start a counter for 60s for the safety check
+					mov State_Timer, #60								; Start a counter for 60s for the safety check
 					mov Current_Target_Temp+0, Soak_Temp+0				; Set the target temperature as Soak_Temp
 					mov Current_Target_Temp+1, Soak_Temp+1
 					mov Power, #100										; Ramp to next temperature as fast as possible
-					mov STATE_COUNTER, #RAMP_TO_SOAK 					; Go to next state
+					mov State_Counter, #RAMP_TO_SOAK 					; Go to next state
 					lcall stateChangeBeep 								; Little beep of the speaker to indicate state change
 			doneWaitState:
 				ljmp fsm1Done
 	rampToSoak:
 		cjne a, #RAMP_TO_SOAK, soak
 			; At this point we are in rampToSoak state
-			mov x+0, Current_Actual_Temp+0
+			mov x+0, Current_Actual_Temp+0								; Move Current_Actual_Temp to x
 			mov x+1, Current_Actual_Temp+1
 			mov x+2, #0
 			mov x+3, #0
-			mov y, #Current_Target_Temp
-			lcall x_lt_y
-			jb mb, notAtSoak										; if Current_Actual_Temp<Current_Target_Temp don't move to SOAK
-				mov State_Timer, #SOAK_TIME							; set timer to length of soak period
-				mov STATE_COUNTER, #SOAK							; set state to SOAK
-				ljmp fsm1Done										; finish with current state and move on to forever to begin SOAK
+			mov y+0, Current_Target_Temp+0								; Move Current_Target_Temp to y
+			mov y+1, Current_Target_Temp+1
+			mov y+2, #0
+			mov y+3, #0
+			lcall x_lt_y												; Compare x and y, mf = 1 if x < y
+			jb mf, notAtSoakTemp										; If Current_Actual_Temp < Current_Target_Temp don't move to SOAK
+				; At this point, the oven temperature has reached soak temperature
+				mov State_Timer, Soak_Time								; Set timer to length of soak period
+				mov State_Counter, #SOAK								; Set state to SOAK
+				ljmp fsm1Done											; Finish with current state and move on to forever to begin SOAK
 			notAtSoakTemp:
-			cjne STATE_TIMER, #0, decCounter							; if our safety timer isn't zero we continue to count down
-				mov x, #Current_Actual_Temp
-				mov y, #50
-				lcall x_lteq_y
-				jb mb, errorTemp										; if Current_Actual_Temp<=50 and our safety timer was zero
-				errorTemp:												; shut down and return to wait state after error
-					mov Power, #0
-					mov STATE_COUNTER, #WAIT
-					lcall errorBeep
-					ljmp fsm1Done
+				; At this point, the oven temperature has not reached soak temperature yet
+				cjne State_Timer, #0, decSafetyCounter					; If our safety timer isn't zero we continue to count down
+					; At this point, the safety counter has run out, we are at 60 seconds and check if oven has reached 50C
+					mov x+0, Current_Actual_Temp+0						; Move Current_Actual_Temp to x
+					mov x+1, Current_Actual_Temp+1
+					mov x+2, #0
+					mov x+3, #0
+					mov y+0, #low(50)										; Move 50 to y
+					mov y+1, #high(50)
+					mov y+2, #0
+					mov y+3, #0
+					lcall x_lteq_y											; mf = 1 is x <= y
+					jnb mf, doneRampToSoakState								; If we have reached 50C in 60s, check is complete
+						mov Power, #0
+						mov State_Counter, #WAIT
+						lcall errorBeep
+						ljmp fsm1Done
+				decSafetyCounter:
+					; At this point, safety timer is not at 0 so we decrement
+					dec State_Timer											; Decrement state timer
+			doneRampToSoakState:
+				ljmp fsm1Done											; We are finished with the current state
 	soak:
 		cjne a, #SOAK, rampToReflow
 			; At this point we are in soak state
@@ -95,7 +111,7 @@ jmp forever
 			mov a, 100
 			mov Power, a										; Ramp to next temperature as fast as possible
 			mov a, RAMP_TO_SOAK
-			mov STATE_COUNTER, a 								; Go to next state
+			mov State_Counter, a 								; Go to next state
 			lcall stateChangeBeep 								; Little beep of the speaker to indicate state change
 			jmp forever
 ;1:
@@ -108,13 +124,13 @@ jmp forever
 			mov a, SOAK_TIME
 			mov State_Timer, a
 			mov a, SOAK
-			mov STATE_COUNTER, a
+			mov State_Counter, a
 			jmp forever
 		errorTemp:
 			mov a, #0
 			mov Power, a
 			mov a, WAIT
-			mov STATE_COUNTER, a
+			mov State_Counter, a
 			lcall errorBeep
 			jmp forever
 	decCounter:

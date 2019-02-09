@@ -41,3 +41,8 @@ UpdateDisplayLCD already done by Dima
 DisplayStateOnLEDs already done by Jaden
 
 Daniel will translate pseudocode AdjustTemp and PWMAdjust
+
+!! Timers description:
+Timer0: used for PWM control, 2048Hz, can be used for beepers with some overhead
+Timer1: used for timekeeping and coordinating forever loop
+Timer2: used for serial port control
