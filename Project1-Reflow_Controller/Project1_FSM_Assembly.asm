@@ -48,7 +48,7 @@ forever:
 				; At this point, the oven temperature has reached soak temperature
 				mov State_Timer, Soak_Time								; Set timer to length of soak period
 				mov State_Counter, #SOAK								; Set state to SOAK
-				ljmp doneRampToSoakState											; Finish with current state and move on to forever to begin SOAK
+				ljmp doneRampToSoakState								; Finish with current state and move on to forever to begin SOAK
 			notAtSoakTemp:
 				; At this point, the oven temperature has not reached soak temperature yet
 				jb Safety_Check_Flag, doneRampToSoakState				; If we have passed the safety check already, no need to keep checking
@@ -77,9 +77,18 @@ forever:
 	soak:
 		cjne a, #SOAK, rampToReflow
 			; At this point we are in soak state
-			djnz State_Timer, decCounter								; if our safety timer isn't zero we continue to count down
-
-		sjmp fsm1Done
+			djnz State_Timer, maintainSoakTemp							; If our safety timer isn't zero we continue to count down
+				; At this point, we State_Timer has reached 0 so we need to move to the next state
+				mov Current_Target_Temp+0, Reflow_Temp+0				; Set the target temperature as Soak_Temp
+				mov Current_Target_Temp+1, Reflow_Temp+1
+				mov Power, #100											; Ramp to next temperature as fast as possible
+				mov State_Counter, #RAMP_TO_REFLOW 						; Go to next state
+				lcall stateChangeBeep 									; Little beep of the speaker to indicate state change
+				ljmp doneSoakState										; Finished with current state, move on to forever to begin RAMP_TO_REFLOW
+			maintainSoakTemp:
+				lcall AdjustTemp										; Call AdjustTemp function to maintain constant temperature
+			doneSoakState:
+				ljmp fsm1Done
 	rampToReflow:
 		cjne a, #RAMP_TO_REFLOW, reflow
 			; At this point we are in rampToReflow state
