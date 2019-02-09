@@ -1,0 +1,43 @@
+List of things left to do:
+
+FSM peripherals (subroutines run each cycle of forever loop that act based on FSM state or gather information for FSM):
+
+function: ReadTempAndDial
+	- Make Gabriel's temperature reading code into a function (initialization of ADC has already been done)
+	- Integrate dial reading code into Gabriel's temperature reading function
+
+function: SettingParams
+	- Small function with switch statement for settings
+		Set_Mode = 0: Operation mode
+		Set_Mode = 1: Set Soak_Temp = Dial_Val
+		Set_Mode = 2: Set Soak_Time = Dial_Val
+		Set_Mode = 3: Set Reflow_Temp = Dial_Val
+		Set_Mode = 4: Set Reflow_Time = Dial_Val
+		A function is called each forever loop to check Set_Mode and write Dial_Val into variables accordingly
+		EEPROM operations should also be done in the function (for storing parameters)
+	; Each forever loop, at the beginning there should be a debounce routine for SET_BUTTON
+	; When a proper press of SET_BUTTON is detected, "Set_Mode" variable is incremented
+	; When "Set_Mode" is at 4, we loop back to 0
+
+function: UpdateOven
+	- Small function to turn oven on when Oven_Switch is 1, off when Oven_Switch is 0
+
+function: UpdateDisplay7Seg
+	- Function to display current temperature on HEX
+
+function: StateChangeBeep
+	- We can't use Timer 0 enable disable for this function (it is being used for PWM)
+	- One possible implementation is to have a flag Beep_Flag that is checked in Timer0ISR
+		- StateChangeBeep should setb Beep_Flag, decrement a counter for a few forever-cycles, then clr Beep_Flag
+		- Timer0ISR should execute "cpl SPEAKER" when Beep_Flag is 1
+
+function: errorBeep
+	- Some beeping funtion to indicate error
+
+!! Set up hardware interrupt EXT1 as STOP_BUTTON (use one of Gabriel's fat pushbuttons, coloured red if possible)
+	- This should invoke an ISR that stops everything and shuts down oven
+
+UpdateDisplayLCD already done by Dima
+DisplayStateOnLEDs already done by Jaden
+
+Daniel will translate pseudocode AdjustTemp and PWMAdjust

@@ -1,6 +1,6 @@
-###### This is a repository for Project 1 - Reflow Oven Controller for ELEC 291/292.
+# This is a repository for Project 1 - Reflow Oven Controller for ELEC 291/292.
 
-# Reminders when coding:
+###### Reminders when coding:
 *Format:*
 
 	- Symbolic Constants, Buttons/Pins: CAPS_CAPS_CAPS
@@ -16,6 +16,7 @@
 **Please use hard tabs (tab characters) instead of spaces, makes cleaning up formatting much easier**
 
 *Code:*
+
 	- When using math32.inc, and using registers "x" and "y", make sure to move as follows:
 
 	mov x+0, variable+0		; Move low bits of "variable" into "x"
