@@ -201,7 +201,7 @@ MainProgram:
 
 forever:
 jb START_reflowLEDs, checkSTATE  	; if the 'START_reflowLEDs' button is not pressed skip
-waitLEDs_Milli_Seconds(#50)			; Debounce delay.  This macro is also in 'LCD_4bit.inc'          FOR TESTING
+wait_Milli_Seconds(#50)			; Debounce delay.  This macro is also in 'LCD_4bit.inc'          FOR TESTING
 jb START_reflowLEDs, checkSTATE  	; if the 'START_reflowLEDs' button is not pressed skip
 jnb START_reflowLEDs, $
 lcall Timer2_Init

@@ -50,6 +50,9 @@ TIMER1_RELOAD_H DATA 0xf5
 	COOL_DOWN 			EQU 5 									; COOL_DOWN state is expressed with State_Counter = 5
 	COOL_TO_TOUCH 		EQU 6 									; COOL_TO_TOUCH state is expressed with State_Counter = 6
 
+; Pins
+	START_BUTTON		EQU P4.5								; Start button, arbitrary pin
+
 ;---------------------------------;
 ; ISR Vectors 				      ;
 ;---------------------------------;
@@ -94,6 +97,7 @@ Soak_Temp:				ds 2		; default 150
 Soak_Time:				ds 2		; default 90
 Reflow_Temp:			ds 2		; default 217
 Reflow_Time:			ds 2		; default 50
+Power:					ds 1		; Indicates power to set oven to
 
 ; Reflow control / state machine variables
 State_Counter:			ds 1 		; Current state number
