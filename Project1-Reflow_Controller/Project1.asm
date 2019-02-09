@@ -93,10 +93,10 @@ org 0x002B
 dseg at 0x30
 
 ; Reflow paramter variables
-Soak_Temp:				ds 2		; default 150
-Soak_Time:				ds 2		; default 90
-Reflow_Temp:			ds 2		; default 217
-Reflow_Time:			ds 2		; default 50
+Soak_Temp:				ds 2		; default 150 (bcd)
+Soak_Time:				ds 1		; default 90 (binary)
+Reflow_Temp:			ds 2		; default 217 (bcd)
+Reflow_Time:			ds 1		; default 50 (binary)
 Power:					ds 1		; Indicates power to set oven to
 
 ; Reflow control / state machine variables
