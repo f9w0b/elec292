@@ -90,26 +90,26 @@ org 0x002B
 dseg at 0x30
 
 ; Reflow paramter variables
-Soak_Temp:				ds 1		; default 150
-Soak_Time:				ds 1		; default 90
-Reflow_Temp:			ds 1		; default 217
-Reflow_Time:				ds 1		; default 50
+Soak_Temp:				ds 2		; default 150
+Soak_Time:				ds 2		; default 90
+Reflow_Temp:			ds 2		; default 217
+Reflow_Time:			ds 2		; default 50
 
 ; Reflow control / state machine variables
 State_Counter:			ds 1 		; Current state number
-State_Timer:		ds 1 		; Counter for how much time has been spent in state
+State_Timer:			ds 1 		; Counter for how much time has been spent in state
 
 ; Global variables for feedback
-Current_Target_Temp:	ds 1		; required temp of current state
-Current_Actual_Temp:	ds 1		; temp readout of thermocouple
-Current_Temp_Diff:		ds 1		; target temp - actual temp
-P_Adjust: 				ds 1		; 50 if TEMP_DIFF > tempThresh, 0 else
+Current_Target_Temp:	ds 2		; required temp of current state
+Current_Actual_Temp:	ds 2		; temp readout of thermocouple
+Current_Temp_Diff:		ds 2		; target temp - actual temp
+P_Adjust: 				ds 2		; Proportional factor adjustment
 ;I_Adjust: 				ds 1 		; Integral factor adjustment
 ;D_Adjust: 				ds 1 		; Derivative factor adjustment
 ;Pid_Total_Adjust: 		ds 1 		; Total weighted PID adjustment
 
 ; Variables for setting parameters
-Dial_Val: 				ds 1		; for adjusting parameters
+Dial_Val: 				ds 2		; for adjusting parameters
 Set_Mode: 				ds 1		; 0:operation, else dial = (1:Soak_Temp, 2:Soak_Time, 3:Reflow_Temp, 4:Reflow_Time)
 
 ; Time Counters
@@ -126,9 +126,11 @@ bcd: 					ds 5 		; For 10 digit BCD for math32
 ; In the 8051 we have variables that are 1-bit in size.  We can use the setb, clr, jb, and jnb
 ; instructions with these variables.  This is how you define a 1-bit variable:
 bseg
-Seconds_Flag: 		dbit 1 		; Set to one in the ISR every time 100 ms had passed
+Seconds_Flag: 		dbit 1		; Set to one in the ISR every time 100 ms had passed
 
-mf: 				dbit 1 		; For math32
+Oven_Switch:		dbit 1		; For indicating the current ON/OFF status of oven
+
+mf: 				dbit 1		; For math32
 
 $NOLIST
 $include(math32.inc) 								; Library of 32-bit math operations
