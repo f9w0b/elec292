@@ -42,13 +42,13 @@ TIMER1_RELOAD_H DATA 0xf5
 	MY_SCLK 	 		bit 0xFB								; SPI Clock (Write only bit)
 
 ; Software FSM state names
-	WAIT 				EQU 0 									; WAIT state is expressed with STATE_COUNTER = 0
-	RAMP_TO_SOAK 		EQU 1 									; RAMP_TO_SOAK state is expressed with STATE_COUNTER = 1
-	SOAK 				EQU 2 									; SOAK state is expressed with STATE_COUNTER = 2
-	RAMP_TO_REFLOW 		EQU 3 									; RAMP_TO_REFLOW state is expressed with STATE_COUNTER = 3
-	REFLOW 				EQU 4 									; REFLOW state is expressed with STATE_COUNTER = 4
-	COOL_DOWN 			EQU 5 									; COOL_DOWN state is expressed with STATE_COUNTER = 5
-	COOL_TO_TOUCH 		EQU 6 									; COOL_TO_TOUCH state is expressed with STATE_COUNTER = 6
+	WAIT 				EQU 0 									; WAIT state is expressed with State_Counter = 0
+	RAMP_TO_SOAK 		EQU 1 									; RAMP_TO_SOAK state is expressed with State_Counter = 1
+	SOAK 				EQU 2 									; SOAK state is expressed with State_Counter = 2
+	RAMP_TO_REFLOW 		EQU 3 									; RAMP_TO_REFLOW state is expressed with State_Counter = 3
+	REFLOW 				EQU 4 									; REFLOW state is expressed with State_Counter = 4
+	COOL_DOWN 			EQU 5 									; COOL_DOWN state is expressed with State_Counter = 5
+	COOL_TO_TOUCH 		EQU 6 									; COOL_TO_TOUCH state is expressed with State_Counter = 6
 
 ;---------------------------------;
 ; ISR Vectors 				      ;
@@ -64,7 +64,7 @@ org 0x0003
 
 ; Timer/Counter 0 overflow interrupt vector
 org 0x000B
-	ljmp Timer0_ISR 	; Jump to Timer0_ISR
+	ljmp Timer0ISR 	; Jump to Timer0ISR
 
 ; External interrupt 1 vector (not used in this code)
 org 0x0013
@@ -72,15 +72,15 @@ org 0x0013
 
 ; Timer/Counter 1 overflow interrupt vector
 org 0x001B
-	ljmp Timer1_ISR 	; Jump to Timer1_ISR
+	ljmp Timer1ISR 	; Jump to Timer1ISR
 
 ; Serial port receive/transmit interrupt vector (not used in this code)
-org 0x0023 
+org 0x0023
 	reti
-	
+
 ; Timer/Counter 2 overflow interrupt vector
 org 0x002B
- 	reti	
+ 	reti
 ;---------------------------------;
 ; Variables 				      ;
 ;---------------------------------;
@@ -90,32 +90,32 @@ org 0x002B
 dseg at 0x30
 
 ; Reflow paramter variables
-SOAK_TEMP:				ds 1		; default 150
-SOAK_TIME:				ds 1		; default 90
-REFLOW_TEMP:			ds 1		; default 217
-REFLOW_TIME:				ds 1		; default 50
+Soak_Temp:				ds 1		; default 150
+Soak_Time:				ds 1		; default 90
+Reflow_Temp:			ds 1		; default 217
+Reflow_Time:				ds 1		; default 50
 
 ; Reflow control / state machine variables
-STATE_COUNTER:			ds 1 		; Current state number
-STATE_TIME_COUNTER:		ds 1 		; Counter for how much time has been spent in state
+State_Counter:			ds 1 		; Current state number
+State_Timer:		ds 1 		; Counter for how much time has been spent in state
 
 ; Global variables for feedback
-CURRENT_TARGET_TEMP:	ds 1		; required temp of current state
-CURRENT_ACTUAL_TEMP:	ds 1		; temp readout of thermocouple
-CURRENT_TEMP_DIFF:		ds 1		; target temp - actual temp
-P_ADJUST: 				ds 1		; 50 if TEMP_DIFF > tempThresh, 0 else
-;I_ADJUST: 				ds 1 		; Integral factor adjustment
-;D_ADJUST: 				ds 1 		; Derivative factor adjustment
-;PID_TOTAL_ADJUST: 		ds 1 		; Total weighted PID adjustment
+Current_Target_Temp:	ds 1		; required temp of current state
+Current_Actual_Temp:	ds 1		; temp readout of thermocouple
+Current_Temp_Diff:		ds 1		; target temp - actual temp
+P_Adjust: 				ds 1		; 50 if TEMP_DIFF > tempThresh, 0 else
+;I_Adjust: 				ds 1 		; Integral factor adjustment
+;D_Adjust: 				ds 1 		; Derivative factor adjustment
+;Pid_Total_Adjust: 		ds 1 		; Total weighted PID adjustment
 
 ; Variables for setting parameters
-DIAL_VAL: 				ds 1		; for adjusting parameters
-SET_MODE: 				ds 1		; 0:operation, else dial = (1:soak_temp, 2:soak_time, 3:reflow_temp, 4:reflow_time)	
+Dial_Val: 				ds 1		; for adjusting parameters
+Set_Mode: 				ds 1		; 0:operation, else dial = (1:Soak_Temp, 2:Soak_Time, 3:Reflow_Temp, 4:Reflow_Time)
 
 ; Time Counters
-Count1ms:     			ds 2 		; Used to determine when second has passed (referred to with Count1ms+0 and Count1ms+1)
-SECOND_COUNTER:			ds 1 		; Counter for runtime seconds
-MINUTE_COUNTER:			ds 1 		; Counter for runtime minutes
+Count_1Ms:     			ds 2 		; Used to determine when second has passed (referred to with Count_1Ms+0 and Count_1Ms+1)
+Second_Counter:			ds 1 		; Counter for runtime seconds
+Minute_Counter:			ds 1 		; Counter for runtime minutes
 
 ; Variables for math32.inc
 x: 						ds 4 		; For math32
@@ -126,7 +126,7 @@ bcd: 					ds 5 		; For 10 digit BCD for math32
 ; In the 8051 we have variables that are 1-bit in size.  We can use the setb, clr, jb, and jnb
 ; instructions with these variables.  This is how you define a 1-bit variable:
 bseg
-seconds_flag: 		dbit 1 		; Set to one in the ISR every time 100 ms had passed
+Seconds_Flag: 		dbit 1 		; Set to one in the ISR every time 100 ms had passed
 
 mf: 				dbit 1 		; For math32
 
@@ -160,7 +160,7 @@ Serial_Mode: 		db      'Serial mode', 0 		; Set message to display wehn sending 
 ; Routine to initialize the ISR   ;
 ; for timer 0                     ;
 ;---------------------------------;
-Timer0_Init:
+Timer0Init:
 	mov a, TMOD 								; Copy TMOD to accumulator
 	anl a, #0xf0 								; Clear the bits for timer 0
 	orl a, #0x01 								; Configure timer 0 as 16-timer
@@ -180,7 +180,7 @@ Timer0_Init:
 ; every 1/4096Hz to generate a    ;
 ; 2048 Hz square wave at pin P3.7 ;
 ;---------------------------------;
-Timer0_ISR:
+Timer0ISR:
 	;clr TF0  ; According to the data sheet this is done for us already.
 	;cpl LED_OUT 								; Invert LED output to generate square wave
 	reti
@@ -189,7 +189,7 @@ Timer0_ISR:
 ; Routine to initialize the ISR   ;
 ; for timer 2                     ;
 ;---------------------------------;
-Timer1_Init:
+Timer1Init:
 	mov a, TMOD 								; Copy TMOD to accumulator
 	anl a, #0x0f 								; Clear the bits for timer 1
 	orl a, #0x10 								; Configure timer 1 as 16-timer
@@ -206,36 +206,35 @@ Timer1_Init:
 ;---------------------------------;
 ; ISR for timer 2                 ;
 ;---------------------------------;
-Timer1_ISR:
+Timer1ISR:
 	clr TF1  									; Timer 2 doesn't clear TF2 automatically. Do it in ISR
 	cpl P3.6 									; To check the interrupt rate with oscilloscope. It must be precisely a 1 ms pulse.
-	
+
 	; The two registers used in the ISR must be saved in the stack
 	push acc
 	push psw
-	
-	; Increment the 16-bit one mili second counter
-	inc Count1ms+0    							; Increment the low 8-bits first
-	mov a, Count1ms+0 							; If the low 8-bits overflow, then increment high 8-bits
-	jnz Inc_Done
-	inc Count1ms+1
 
-Inc_Done:
+	; Increment the 16-bit one mili second counter
+	inc Count_1Ms+0    							; Increment the low 8-bits first
+	mov a, Count_1Ms+0 							; If the low 8-bits overflow, then increment high 8-bits
+	jnz incDone
+	inc Count_1Ms+1
+
+incDone:
 	; Check if 1 second has passed
-	mov a, Count1ms+0
+	mov a, Count_1Ms+0
 	cjne a, #low(1000), Timer2_ISR_done 		; Warning: this instruction changes the carry flag!
-	mov a, Count1ms+1
+	mov a, Count_1Ms+1
 	cjne a, #high(1000), Timer2_ISR_done
-	
+
 	; 1000 milliseconds have passed.  Set a flag so the main program knows
-	setb seconds_flag 							; Let the main program know half second had passed
+	setb Seconds_Flag 							; Let the main program know half second had passed
 	; Reset to zero the milli-seconds counter, it is a 16-bit variable
 	clr a
-	mov Count1ms+0, a
-	mov Count1ms+1, a
-	
+	mov Count_1Ms+0, a
+	mov Count_1Ms+1, a
+
 	; We are done ISR for timer 2
-Timer2_ISR_done:
 	pop psw
 	pop acc
 	reti
@@ -245,7 +244,7 @@ Timer2_ISR_done:
 ; rate; serial port operations    ;
 ;---------------------------------;
 ; Configure the serial port and baud rate
-Initialize_Serial_Port:
+InitializeSerialPort:
     ; Initialize serial port and baud rate using timer 2
 	mov RCAP2H, #high(TIMER_2_RELOAD) 	; Set reload values so that Timer 2 matches baud rate
 	mov RCAP2L, #low(TIMER_2_RELOAD) 	; Set reload values so that Timer 2 matches baud rate
@@ -253,62 +252,62 @@ Initialize_Serial_Port:
 	mov SCON, #0x52 					; Serial port in mode 1, ren, txrdy, rxempty
 	ret
 
-putchar:
-	jbc	TI,putchar_L1
-	sjmp putchar
-putchar_L1:
+putChar:
+	jbc	TI,putChar_L1
+	sjmp putChar
+putChar_L1:
 	mov	SBUF,a
 	ret
-	
-getchar:
-	jbc	RI,getchar_L1
-	sjmp getchar
-getchar_L1:
+
+getChar:
+	jbc	RI,getChar_L1
+	sjmp getChar
+getChar_L1:
 	mov	a,SBUF
 	ret
 
 SendString:
     clr a
     movc a, @a+dptr
-    jz SendString_L1
-    lcall putchar
+    jz sendStringL1
+    lcall putChar
     inc dptr
-    sjmp SendString  
-SendString_L1:
+    sjmp SendString
+sendStringL1:
 	ret
 
-; Send a 4-digit BCD number stored in [R3,R2] to the serial port	
+; Send a 4-digit BCD number stored in [R3,R2] to the serial port
 SendNumber:
 	mov a, R3
 	swap a
 	anl a, #0x0f
 	orl a, #'0'
-	lcall putchar
+	lcall putChar
 	mov a, #'.'
-	lcall putchar
+	lcall putChar
 	mov a, R3
 	anl a, #0x0f
 	orl a, #'0'
-	lcall putchar
+	lcall putChar
 	mov a, R2
 	swap a
 	anl a, #0x0f
 	orl a, #'0'
-	lcall putchar
+	lcall putChar
 	mov a, R2
 	anl a, #0x0f
 	orl a, #'0'
-	lcall putchar
+	lcall putChar
 	mov a, #'\r' 		;****
-	lcall putchar 		;****
+	lcall putChar 		;****
 	mov a, #'\n' 		;****
-	lcall putchar 		;****
+	lcall putChar 		;****
 	ret
 
 ;---------------------------------;
 ; Code for initializing LEDs      ;
 ;---------------------------------;
-Initialize_LEDs:
+InitializeLEDs:
     ; Turn off LEDs
 	mov	LEDRA,#0x00
 	mov	LEDRB,#0x00
@@ -317,15 +316,15 @@ Initialize_LEDs:
 ;---------------------------------;
 ; ADC configuration and operation ;
 ;---------------------------------;
-	
-Initialize_ADC:
+
+InitializeADC:
 	; Initialize SPI pins connected to LTC2308
 	clr	MY_MOSI
 	clr	MY_SCLK
 	setb CE_ADC
 	ret
 
-LTC2308_Toggle_Pins:
+LTC2308TogglePins:
     mov MY_MOSI, c
     setb MY_SCLK
     mov c, MY_MISO
@@ -340,61 +339,61 @@ LTC2308_Toggle_Pins:
 ;
 ; Channel to read passed in register 'b'.  Result in R1 (bits 11 downto 8) and R0 (bits 7 downto 0).
 ; Notice the weird order of the channel select bits!
-LTC2308_RW:
-    clr a 
+LTC2308RW:
+    clr a
 	clr	CE_ADC ; Enable ADC
 
     ; Send 'S/D', get bit 11
     setb c ; S/D=1 for single ended conversion
-    lcall LTC2308_Toggle_Pins
+    lcall LTC2308TogglePins
     mov acc.3, c
     ; Send channel bit 0, get bit 10
     mov c, b.2 ; O/S odd channel select
-    lcall LTC2308_Toggle_Pins
-    mov acc.2, c 
+    lcall LTC2308TogglePins
+    mov acc.2, c
     ; Send channel bit 1, get bit 9
     mov c, b.0 ; S1
-    lcall LTC2308_Toggle_Pins
+    lcall LTC2308TogglePins
     mov acc.1, c
     ; Send channel bit 2, get bit 8
     mov c, b.1 ; S0
-    lcall LTC2308_Toggle_Pins
+    lcall LTC2308TogglePins
     mov acc.0, c
     mov R1, a
-    
+
     ; Now receive the lest significant eight bits
-    clr a 
+    clr a
     ; Send 'UNI', get bit 7
     setb c ; UNI=1 for unipolar output mode
-    lcall LTC2308_Toggle_Pins
+    lcall LTC2308TogglePins
     mov acc.7, c
     ; Send 'SLP', get bit 6
     clr c ; SLP=0 for NAP mode
-    lcall LTC2308_Toggle_Pins
+    lcall LTC2308TogglePins
     mov acc.6, c
     ; Send '0', get bit 5
     clr c
-    lcall LTC2308_Toggle_Pins
+    lcall LTC2308TogglePins
     mov acc.5, c
     ; Send '0', get bit 4
     clr c
-    lcall LTC2308_Toggle_Pins
+    lcall LTC2308TogglePins
     mov acc.4, c
     ; Send '0', get bit 3
     clr c
-    lcall LTC2308_Toggle_Pins
+    lcall LTC2308TogglePins
     mov acc.3, c
     ; Send '0', get bit 2
     clr c
-    lcall LTC2308_Toggle_Pins
+    lcall LTC2308TogglePins
     mov acc.2, c
     ; Send '0', get bit 1
     clr c
-    lcall LTC2308_Toggle_Pins
+    lcall LTC2308TogglePins
     mov acc.1, c
     ; Send '0', get bit 0
     clr c
-    lcall LTC2308_Toggle_Pins
+    lcall LTC2308TogglePins
     mov acc.0, c
     mov R0, a
 
@@ -406,46 +405,46 @@ LTC2308_RW:
 ; 7-seg display operation         ;
 ;---------------------------------;
 
-; Look-up table for the 7-seg displays. (Segments are turn on with zero) 
+; Look-up table for the 7-seg displays. (Segments are turn on with zero)
 T_7seg:
     DB 40H, 79H, 24H, 30H, 19H, 12H, 02H, 78H, 00H, 10H
 
 ; Display the 4-digit bcd stored in [R3,R2] using the 7-segment displays
-Display_BCD_SEG7:
+DisplayBCDSeg7:
 	mov dptr, #T_7seg
 	; Display the channel in HEX5
 	mov a, b
 	anl a, #0x0f
 	movc a, @a+dptr
 	mov HEX5, a
-	
+
 	; Display [R3,R2] in HEX3, HEX2, HEX1, HEX0
 	mov a, R3
 	swap a
 	anl a, #0x0f
 	movc a, @a+dptr
 	mov HEX3, a
-	
+
 	mov a, R3
 	anl a, #0x0f
 	movc a, @a+dptr
 	mov HEX2, a
-	
+
 	mov a, R2
 	swap a
 	anl a, #0x0f
 	movc a, @a+dptr
 	mov HEX1, a
-	
+
 	mov a, R2
 	anl a, #0x0f
 	movc a, @a+dptr
 	mov HEX0, a
-	
+
 	ret
 
 
-	
+
 ;---------------------------------;
 ; Main program. Includes hardware ;
 ; initialization and 'forever'    ;
@@ -454,44 +453,44 @@ Display_BCD_SEG7:
 main:
 	; Initialization
     mov SP, #0x7F 									; Initialize stack
-    lcall Timer0_Init								; Initialize Timer 0
-    lcall Timer1_Init								; Initialize Timer 1
+    lcall Timer0Init								; Initialize Timer 0
+    lcall Timer1Init								; Initialize Timer 1
     setb EA 										; Allow global interrupts
-    lcall Initialize_LEDs 							; Initialize LEDs to be all off
-    lcall Initialize_ADC							; Initialize SPI
+    lcall InitializeLEDs 							; Initialize LEDs to be all off
+    lcall InitializeADC							; Initialize SPI
     lcall ELCD_4BIT 								; Initialize LCD to 4 bit mode
-    lcall Initialize_Serial_Port					; Initialize serial port
+    lcall InitializeSerialPort					; Initialize serial port
     ; Set up variable initial values
-	
+
 	; Dseg variables
 
 	    ; Reflow paramter variables
-	    mov SOAK_TEMP, #150 							; Default soak temperature (150C)
-	    mov SOAK_TIME, #90 								; Default soak time duration (90s)
-	    mov REFLOW_TEMP, #217 							; Default reflow temperature (217C)
-	    mov REFLOW_TIME, #50 							; Default reflow time duration (50s)
+	    mov Soak_Temp, #150 							; Default soak temperature (150C)
+	    mov Soak_Time, #90 								; Default soak time duration (90s)
+	    mov Reflow_Temp, #217 							; Default reflow temperature (217C)
+	    mov Reflow_Time, #50 							; Default reflow time duration (50s)
 
 	    ; Reflow control / state machine variables
-	    mov STATE_COUNTER, #0 							; Initialize state to WAIT state
-	    mov STATE_TIME_COUNTER, #0 						; Initialize time counter (for measuring how much time we are in each state) to 0
+	    mov State_Counter, #0 							; Initialize state to WAIT state
+	    mov State_Timer, #0 						; Initialize time counter (for measuring how much time we are in each state) to 0
 
 	    ; Global Variables for feedback
-	    mov CURRENT_TARGET_TEMP, #0 					; Initialize target temperature to 0 (for debugging purposes)
-	    mov CURRENT_ACTUAL_TEMP, #0 					; Initialize current temperature to 0 (for debugging purposes)
-	    mov CURRENT_TEMP_DIFF, #0 						; Initialize temperature difference between current and target to 0
-	    mov P_ADJUST, #0 								; Initialize the proportional adjustment variable to 0
-	    ;mov I_ADJUST, #0 								; Initialize the integral adjustment variable to 0
-	    ;mov D_ADJUST, #0 								; Initialize the derivative adjustment variable to 0
-	    
+	    mov Current_Target_Temp, #0 					; Initialize target temperature to 0 (for debugging purposes)
+	    mov Current_Actual_Temp, #0 					; Initialize current temperature to 0 (for debugging purposes)
+	    mov Current_Temp_Diff, #0 						; Initialize temperature difference between current and target to 0
+	    mov P_Adjust, #0 								; Initialize the proportional adjustment variable to 0
+	    ;mov I_Adjust, #0 								; Initialize the integral adjustment variable to 0
+	    ;mov D_Adjust, #0 								; Initialize the derivative adjustment variable to 0
+
 	    ; Variables for setting parameters
-	    mov DIAL_VAL, #0 								; Initialize the dial reading (from ADC) to 0
-	    mov SET_MODE, #0 								; Initialize the "state counter" for setting paramters to "not setting"
+	    mov Dial_Val, #0 								; Initialize the dial reading (from ADC) to 0
+	    mov Set_Mode, #0 								; Initialize the "state counter" for setting paramters to "not setting"
 
 	    ; Timekeeping variables
-	    mov Count1ms, #0 								; Set Count1ms initial value as 0
-	    mov Count1ms+1, #0
-	    mov SECOND_COUNTER, #0 							; Initialize SECOND_COUNTER as 0
-	    mov MINUTE_COUNTER, #0 							; Initialize HOUR_COUNTER as 0
+	    mov Count_1Ms, #0 								; Set Count_1Ms initial value as 0
+	    mov Count_1Ms+1, #0
+	    mov Second_Counter, #0 							; Initialize Second_Counter as 0
+	    mov Minute_Counter, #0 							; Initialize HOUR_COUNTER as 0
 
 	    ; Math variables
 	    mov x+0, #0 									; Set x initial value as 0
@@ -507,9 +506,9 @@ main:
 	    mov bcd+2, #0
 	    mov bcd+3, #0
 	    mov bcd+4, #0
-    
+
     ; Bseg variables
-	    setb seconds_flag 								; Initialize seconds_flag to 1 so that we update display right away
+	    setb Seconds_Flag 								; Initialize Seconds_Flag to 1 so that we update display right away
 	    clr mf 											; Clear the comparison flag
 	; After initialization the program stays in this 'forever' loop
 forever:
@@ -517,24 +516,24 @@ forever:
 ;---------------------------------;
 ; Toggle button controls          ;
 ;---------------------------------;
-	jb BOOT_BUTTON, BOOT_BUTTON_Not_Pressed  		; if the 'BOOT' button is not pressed skip
+	jb BOOT_BUTTON, bootButtonNotPressed  		; if the 'BOOT' button is not pressed skip
 	Wait_Milli_Seconds(#50)							; Debounce delay.  This macro is also in 'LCD_4bit.inc'
-	jb BOOT_BUTTON, BOOT_BUTTON_Not_Pressed  		; if the 'BOOT' button is not pressed skip
+	jb BOOT_BUTTON, bootButtonNotPressed  		; if the 'BOOT' button is not pressed skip
 	jnb BOOT_BUTTON, $								; Wait for button release.  The '$' means: jump to same instruction.
 	; A valid press of the 'BOOT' button has been detected, reset the BCD counter.
 	; But first stop timer 2 and reset the milli-seconds counter, to resync everything.
 	clr TR2                 						; Stop timer 2
 	clr a 											; Clear a
-	mov Count1ms+0, a 								; Set Count1ms+0 = #0
-	mov Count1ms+1, a 								; Set Count1ms+1 = #0
+	mov Count_1Ms+0, a 								; Set Count_1Ms+0 = #0
+	mov Count_1Ms+1, a 								; Set Count_1Ms+1 = #0
 	setb TR2                						; Re-start timer 2
-	ljmp UPDATE_DISPLAY             				; Go to update display
-BOOT_BUTTON_Not_Pressed:
-	jnb seconds_flag, forever						; If button not pressed and it is not yet a new "second", go back to beginning of forever loop
-UPDATE_DISPLAY:
-		
-	clr seconds_flag 								; We clear this flag in the main loop, but it is set in the ISR for timer 2
-	cpl LEDRA.0 
+	ljmp updateDisplay             				; Go to update display
+bootButtonNotPressed:
+	jnb Seconds_Flag, forever						; If button not pressed and it is not yet a new "second", go back to beginning of forever loop
+updateDisplay:
+
+	clr Seconds_Flag 								; We clear this flag in the main loop, but it is set in the ISR for timer 2
+	cpl LEDRA.0
 
 
 END
