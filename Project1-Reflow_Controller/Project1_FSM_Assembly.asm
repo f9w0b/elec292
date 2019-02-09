@@ -92,7 +92,22 @@ forever:
 	rampToReflow:
 		cjne a, #RAMP_TO_REFLOW, reflow
 			; At this point we are in rampToReflow state
-		sjmp fsm1Done
+			mov x+0, Current_Actual_Temp+0								; Move Current_Actual_Temp to x
+			mov x+1, Current_Actual_Temp+1
+			mov x+2, #0
+			mov x+3, #0
+			mov y+0, Current_Target_Temp+0								; Move Current_Target_Temp to y
+			mov y+1, Current_Target_Temp+1
+			mov y+2, #0
+			mov y+3, #0
+			lcall x_lt_y												; Compare x and y, mf = 1 if x < y
+			jb mf, doneRampToReflowState									; If Current_Actual_Temp < Current_Target_Temp do nothing
+				; At this point, the oven temperature has reached reflow temperature
+				mov State_Timer, Reflow_Time							; Set timer to length of reflow period
+				mov State_Counter, #REFLOW								; Set state to REFLOW
+				ljmp doneRampToReflowState								; Finish with current state and move on to forever to begin REFLOW
+			doneRampToReflowState:
+				sjmp fsm1Done
 	reflow:
 		cjne a, #REFLOW, coolDown
 			; At this point we are in reflow state

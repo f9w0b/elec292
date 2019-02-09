@@ -101,7 +101,7 @@ Power:					ds 1		; Indicates power to set oven to
 
 ; Reflow control / state machine variables
 State_Counter:			ds 1 		; Current state number
-State_Timer:			ds 1 		; Counter for how much time has been spent in state
+State_Timer:			ds 1 		; Counter for how much time has been spent in state (binary!!! for djnz)
 
 ; Global variables for feedback
 Current_Target_Temp:	ds 2		; required temp of current state
