@@ -2,11 +2,12 @@
 ;------------------------- formatting guidelines ------------------------------;
 ; label name: lowercaseUppercase
 ; Function name: UpperCaseUppercase
-; Symbolic Constants: CAPSCAPSCAPS
+; Symbolic Constants: CAPS_CAPS_CAPS
 ; Variables: Uppercase_Uppercase
-; Global Variables(except x,y,z): CAPS_CAPS_CAPS
 ;------------------------------------------------------------------------------;
 START_BUTTON equ P4.5													; arbitrary pin for start button
+bseg:
+Safety_Check_Flag	dbit 1
 
 ; ARM Translation for FSM
 forever:
@@ -47,34 +48,36 @@ forever:
 				; At this point, the oven temperature has reached soak temperature
 				mov State_Timer, Soak_Time								; Set timer to length of soak period
 				mov State_Counter, #SOAK								; Set state to SOAK
-				ljmp fsm1Done											; Finish with current state and move on to forever to begin SOAK
+				ljmp doneRampToSoakState											; Finish with current state and move on to forever to begin SOAK
 			notAtSoakTemp:
 				; At this point, the oven temperature has not reached soak temperature yet
-				cjne State_Timer, #0, decSafetyCounter					; If our safety timer isn't zero we continue to count down
+				jb Safety_Check_Flag, doneRampToSoakState				; If we have passed the safety check already, no need to keep checking
+				djnz State_Timer, doneRampToSoakState					; If our safety timer isn't zero we continue to count down
 					; At this point, the safety counter has run out, we are at 60 seconds and check if oven has reached 50C
 					mov x+0, Current_Actual_Temp+0						; Move Current_Actual_Temp to x
 					mov x+1, Current_Actual_Temp+1
 					mov x+2, #0
 					mov x+3, #0
-					mov y+0, #low(50)										; Move 50 to y
+					mov y+0, #low(50)									; Move 50 to y
 					mov y+1, #high(50)
 					mov y+2, #0
 					mov y+3, #0
-					lcall x_lteq_y											; mf = 1 is x <= y
-					jnb mf, doneRampToSoakState								; If we have reached 50C in 60s, check is complete
-						mov Power, #0
-						mov State_Counter, #WAIT
-						lcall errorBeep
-						ljmp fsm1Done
-				decSafetyCounter:
-					; At this point, safety timer is not at 0 so we decrement
-					dec State_Timer											; Decrement state timer
+					lcall x_lteq_y										; mf = 1 is x <= y
+					jnb mf, safetyCheckPassed							; If we have reached 50C in 60s, check is complete
+						; At this point, we have encountered an error with the oven (temp < 50C @ 60s)
+						mov Power, #0									; Turn off oven
+						mov State_Counter, #WAIT						; Go back to wait state
+						lcall errorBeep									; Beep to indicate error
+						ljmp doneRampToSoakState
+					safetyCheckPassed:
+						; At this point, we have passed the safety check, we should set the flag to indicate we are done
+						setb Safety_Check_Flag							; Indicate we have passed safety check
 			doneRampToSoakState:
 				ljmp fsm1Done											; We are finished with the current state
 	soak:
 		cjne a, #SOAK, rampToReflow
 			; At this point we are in soak state
-			cjne State_Timer, #0, decCounter							; if our safety timer isn't zero we continue to count down
+			djnz State_Timer, decCounter								; if our safety timer isn't zero we continue to count down
 
 		sjmp fsm1Done
 	rampToReflow:
