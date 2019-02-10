@@ -46,6 +46,13 @@ TIMER1_RELOAD_H DATA 0xf5
 ; Pins
 	START_BUTTON		EQU P4.5								; Start button, arbitrary pin
 	SPEAKER				EQU P2.3								; Pin connected to speaker
+	OVEN_PIN			EQU P2.2								; Pin connected to oven
+
+	STATE1_LED			EQU P1.0								; State indication LEDs
+	STATE2_LED			EQU P1.1
+	STATE3_LED			EQU P1.2
+	STATE4_LED			EQU P1.3
+	STATE5_LED			EQU P1.4
 
 ; Other Symbolic constants
 	COOL_TO_TOUCH_TEMP	EQU 50									; Temperature defined as cool to touch, used to trigger 5 -> 6 state transition
@@ -311,9 +318,15 @@ SendNumber:
 ; Code for initializing LEDs      ;
 ;---------------------------------;
 InitializeLEDs:
-    ; Turn off LEDs
+    ; Turn off LEDs on DE1SoC
 	mov	LEDRA,#0x00
 	mov	LEDRB,#0x00
+	; Turn of state indication LEDs
+	clr STATE1_LED
+	clr STATE2_LED
+	clr STATE3_LED
+	clr STATE4_LED
+	clr STATE5_LED
 	ret
 
 ;---------------------------------;
