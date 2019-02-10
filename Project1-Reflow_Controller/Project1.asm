@@ -544,6 +544,7 @@ updateDisplay:
 	lcall SettingParams								; Function for setting reflow parameters and storing them in EEPROM
 	lcall UpdateDisplay7Seg							; Function for updating 7Seg display with current temperature
 	lcall UpdateDisplayLCD							; Function for updating LCD display with information
+	lcall DisplayStateOnLEDs						; Function for displaying current stage progress on LEDs
 
 	;------------------------------------------------- FSM
 
